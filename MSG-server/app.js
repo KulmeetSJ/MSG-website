@@ -19,13 +19,17 @@ const allowedOrigins = [
 app.use(
   cors({
     credentials: true,
-    origin: allowedOrigins,
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "Origin",
-      "Access-Control-Allow-Origin",
-    ],
+    origin: function (origin, callback) {
+      // allow non-browser tools like Postman (no Origin header)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
+    allowedHeaders: ["Content-Type", "Authorization", "Origin"],
   })
 );
 
