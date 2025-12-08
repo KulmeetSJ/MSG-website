@@ -13,6 +13,7 @@ const allowedOrigins = [
   "https://msg-website.vercel.app",
   "https://msg-website-kulmeet-singhs-projects.vercel.app/",
   "https://msg-website-git-main-kulmeet-singhs-projects.vercel.app/",
+  "https://mskcreativestudio.com",
 ];
 
 app.use(
