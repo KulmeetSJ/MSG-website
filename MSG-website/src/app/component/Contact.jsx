@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { TextField } from "@mui/material";
 import emailjs from "@emailjs/browser";
 
@@ -9,16 +9,72 @@ export default function Contact() {
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [honeypot, setHoneypot] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
 
   const form = useRef();
 
+  useEffect(() => {
+    if (cooldownRemaining <= 0) return;
+    const timer = setTimeout(() => {
+      setCooldownRemaining((prev) => prev - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [cooldownRemaining]);
+
   const handleSendMessage = (e) => {
     e.preventDefault();
-    if (!name || !email || !subject || !message) {
-      alert("Please fill all the fields");
+
+    if (isSubmitting || cooldownRemaining > 0) {
       return;
     }
 
+    // 1. Honeypot check: silently reject bots
+    if (honeypot && honeypot.trim() !== "") {
+      console.warn("Spam submission rejected by honeypot.");
+      alert("Successfully sent the message! I will get back to you soon.");
+      setName("");
+      setEmail("");
+      setSubject("");
+      setMessage("");
+      setHoneypot("");
+      return;
+    }
+
+    // 2. Input trimming and validation
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+    const trimmedSubject = subject.trim();
+    const trimmedMessage = message.trim();
+
+    if (!trimmedName || !trimmedEmail || !trimmedSubject || !trimmedMessage) {
+      alert("Please fill all the fields.");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      alert("Please enter a valid email address.");
+      return;
+    }
+
+    if (trimmedName.length < 2 || trimmedName.length > 100) {
+      alert("Name must be between 2 and 100 characters.");
+      return;
+    }
+
+    if (trimmedSubject.length < 2 || trimmedSubject.length > 200) {
+      alert("Subject must be between 2 and 200 characters.");
+      return;
+    }
+
+    if (trimmedMessage.length < 5 || trimmedMessage.length > 5000) {
+      alert("Message must be between 5 and 5000 characters.");
+      return;
+    }
+
+    setIsSubmitting(true);
     console.log("Sending message");
 
     emailjs
@@ -29,12 +85,21 @@ export default function Contact() {
         () => {
           console.log("SUCCESS!");
           alert("Successfully sent the message! I will get back to you soon.");
+          setName("");
+          setEmail("");
+          setSubject("");
+          setMessage("");
+          setHoneypot("");
+          setCooldownRemaining(30);
         },
         (error) => {
           console.log("FAILED...", error.text);
           alert("Failed to send the message! Please try again.");
         }
-      );
+      )
+      .finally(() => {
+        setIsSubmitting(false);
+      });
   };
 
   return (
@@ -113,6 +178,31 @@ export default function Contact() {
           ref={form}
         >
           <div className="flex flex-col w-full gap-4 text-black">
+            {/* Honeypot field - hidden from legitimate users and screen readers */}
+            <div
+              style={{
+                position: "absolute",
+                left: "-9999px",
+                opacity: 0,
+                height: 0,
+                width: 0,
+                zIndex: -1,
+                pointerEvents: "none",
+              }}
+              aria-hidden="true"
+            >
+              <label htmlFor="website_hp">Do not fill this field</label>
+              <input
+                type="text"
+                id="website_hp"
+                name="website_hp"
+                tabIndex={-1}
+                autoComplete="off"
+                value={honeypot}
+                onChange={(e) => setHoneypot(e.target.value)}
+              />
+            </div>
+
             <div className="flex flex-col sm:flex-row justify-between items-center gap-2 w-full">
               <div className="flex flex-col gap-1 sm:gap-2 w-full sm:w-1/2">
                 <label
@@ -123,6 +213,7 @@ export default function Contact() {
                 </label>
                 <TextField
                   id="name"
+                  name="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   variant="standard"
@@ -144,6 +235,7 @@ export default function Contact() {
                 </label>
                 <TextField
                   id="mail"
+                  name="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   variant="standard"
@@ -167,6 +259,7 @@ export default function Contact() {
               </label>
               <TextField
                 id="subject"
+                name="subject"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 variant="standard"
@@ -188,6 +281,7 @@ export default function Contact() {
               </label>
               <TextField
                 id="message"
+                name="message"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 variant="standard"
@@ -205,10 +299,19 @@ export default function Contact() {
           </div>
           <div className="flex justify-start w-full mt-2 sm:mt-4">
             <button
-              className="rounded-xl bg-transparent hover:bg-transparent text-primary-darkPurple border-2 border-primary-darkPurple font-purple tracking-tight hover:shadow-2xl px-4 py-2 font-semibold text-lg"
+              className={`rounded-xl bg-transparent text-primary-darkPurple border-2 border-primary-darkPurple font-purple tracking-tight px-4 py-2 font-semibold text-lg transition-all ${
+                isSubmitting || cooldownRemaining > 0
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-transparent hover:shadow-2xl cursor-pointer"
+              }`}
               type="submit"
+              disabled={isSubmitting || cooldownRemaining > 0}
             >
-              Send Message
+              {isSubmitting
+                ? "Sending..."
+                : cooldownRemaining > 0
+                ? `Please wait (${cooldownRemaining}s)`
+                : "Send Message"}
             </button>
           </div>
         </form>

@@ -39,10 +39,10 @@ export default function About() {
                 natural inclination towards simplicity and aesthetics. Having
                 pursued a degree in Fine Arts, she subsequently embarked on a
                 fulfilling career as an art faculty member, accumulating over a
-                decade's worth of experience in the field.
+                decade&apos;s worth of experience in the field.
               </p>
               <p className="text-sm sm:text-base text-primary-darkBlue">
-                As the visionary founder of "MSK Creative Studio" specializing
+                As the visionary founder of &quot;MSK Creative Studio&quot; specializing
                 in Drawing, Painting, and Creative Arts, Megha actively
                 organizes and conducts diverse art workshops. Passionate about
                 nurturing young individuals, she takes joy in imparting her
